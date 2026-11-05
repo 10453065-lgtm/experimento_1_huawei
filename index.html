@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Huawei Pura 80 Ultra 3D - GSMArena Viewer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #0b0b0b;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        #info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            background: rgba(15, 15, 15, 0.85);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            backdrop-filter: blur(10px);
+            pointer-events: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        h1 { margin: 0 0 8px 0; font-size: 20px; color: #d4af37; font-weight: 600; letter-spacing: -0.5px; }
+        p { margin: 5px 0; font-size: 13px; color: #aaa; line-height: 1.4; }
+        .stat { color: #fff; font-weight: bold; }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            cursor: grab;
+        }
+        #canvas-container:active { cursor: grabbing; }
+    </style>
+    <script src="https://cloudflare.com"></script>
+    <script src="https://jsdelivr.net"></script>
+</head>
+<body>
+
+    <div id="info-panel">
+        <h1>Huawei Pura 80 Ultra</h1>
+        <p>Color: <span class="stat">Prestige Gold (3D)</span></p>
+        <p>Dimensiones: <span class="stat">163 x 76.1 x 8.3 mm</span></p>
+        <p>Render: <span class="stat">Three.js WebGL (PBR)</span></p>
+        <p style="margin-top: 15px; font-size: 11px; color: #777;">Arrastra para rotar · Scroll para zoom</p>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script>
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0b0b0b);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 40, 320);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.3;
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 140;
+        controls.maxDistance = 500;
+
+        // Iluminación de estudio
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+
+        const keyLight = new THREE.DirectionalLight(0xfff5e6, 1.8); // Tono cálido dorados
+        keyLight.position.set(150, 200, 150);
+        scene.add(keyLight);
+
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        fillLight.position.set(-150, -50, 100);
+        scene.add(fillLight);
+
+        const rimLight = new THREE.DirectionalLight(0xffffff, 1.5); // Brillo de contorno trasero
+        rimLight.position.set(0, 100, -200);
+        scene.add(rimLight);
+
+        // Geometría del Teléfono
+        const width = 76.1;
+        const height = 163.0;
+        const depth = 8.3;
+        const radius = 9.0; 
+
+        const phoneGroup = new THREE.Group();
+
+        // Materiales Premium Oro y Cristal
+        const goldMaterial = new THREE.MeshStandardMaterial({
+            color: 0xe6ca9d,       
+            metalness: 0.9,
+            roughness: 0.15,
+            envMapIntensity: 1.0
+        });
+
+        const screenMaterial = new THREE.MeshStandardMaterial({
+            color: 0x080808,
+            metalness: 0.2,
+            roughness: 0.05
+        });
+
+        const lensMaterial = new THREE.MeshStandardMaterial({
+            color: 0x151515,
+            metalness: 0.95,
+            roughness: 0.05
+        });
+
+        // Cuerpo base extruido
+        const shape = new THREE.Shape();
+        shape.moveTo(-width/2 + radius, -height/2);
+        shape.lineTo(width/2 - radius, -height/2);
+        shape.quadraticCurveTo(width/2, -height/2, width/2, -height/2 + radius);
+        shape.lineTo(width/2, height/2 - radius);
+        shape.quadraticCurveTo(width/2, height/2, width/2 - radius, height/2);
+        shape.lineTo(-width/2 + radius, height/2);
+        shape.quadraticCurveTo(-width/2, height/2, -width/2, height/2 - radius);
+        shape.lineTo(-width/2, -height/2 + radius);
+        shape.quadraticCurveTo(-width/2, -height/2, -width/2 + radius, -height/2);
+
+        const extrudeSettings = { steps: 1, depth: depth - 2, bevelEnabled: true, bevelThickness: 1, bevelSize: 1, bevelSegments: 6 };
+        const bodyGeometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+        bodyGeometry.center();
+        const phoneBody = new THREE.Mesh(bodyGeometry, goldMaterial);
+        phoneGroup.add(phoneBody);
+
+        // Pantalla
+        const screenGeometry = new THREE.PlaneGeometry(width - 1.5, height - 1.5);
+        const phoneScreen = new THREE.Mesh(screenGeometry, screenMaterial);
+        phoneScreen.position.z = (depth / 2) + 0.02;
+        phoneGroup.add(phoneScreen);
+
+        // Módulo de Cámara Triangular/Trapezoide Pura
+        const cameraModuleGroup = new THREE.Group();
+        const camShape = new THREE.Shape();
+        camShape.moveTo(-16, -22);
+        camShape.lineTo(16, -26);
+        camShape.lineTo(22, 22);
+        camShape.lineTo(-12, 26);
+        camShape.closePath();
+
+        const camGeometry = new THREE.ExtrudeGeometry(camShape, { steps: 1, depth: 2.8, bevelEnabled: true, bevelThickness: 0.4, bevelSize: 0.4, bevelSegments: 4 });
+        const camIsland = new THREE.Mesh(camGeometry, goldMaterial);
+        cameraModuleGroup.add(camIsland);
+
+        // Lentes
+        const lenses = [{x: 4, y: 11, r: 7.5}, {x: -4, y: -9, r: 5.5}, {x: 11, y: -11, r: 4.5}];
+        lenses.forEach(lens => {
+            const ringGeom = new THREE.CylinderGeometry(lens.r, lens.r - 0.6, 0.8, 32);
+            const ring = new THREE.Mesh(ringGeom, goldMaterial);
+            ring.rotation.x = Math.PI / 2;
+            ring.position.set(lens.x, lens.y, 2.9);
+            cameraModuleGroup.add(ring);
+
+            const glassGeom = new THREE.CylinderGeometry(lens.r - 0.6, lens.r - 0.6, 0.6, 32);
+            const glass = new THREE.Mesh(glassGeom, lensMaterial);
+            glass.rotation.x = Math.PI / 2;
+            glass.position.set(lens.x, lens.y, 3.0);
+            cameraModuleGroup.add(glass);
+        });
+
+        cameraModuleGroup.position.set(-13, 44, -(depth / 2) - 0.1);
+        cameraModuleGroup.rotation.y = Math.PI;
+        phoneGroup.add(cameraModuleGroup);
+
+        // Botones de volumen y encendido laterales derecho
+        const buttonMat = goldMaterial;
+        const volBtnGeom = new THREE.BoxGeometry(1, 15, 1.2);
+        const volBtn = new THREE.Mesh(volBtnGeom, buttonMat);
+        volBtn.position.set((width/2) + 0.2, 30, 0);
+        phoneGroup.add(volBtn);
+
+        const pwrBtnGeom = new THREE.BoxGeometry(1, 8, 1.2);
+        const pwrBtn = new THREE.Mesh(pwrBtnGeom, buttonMat);
+        pwrBtn.position.set((width/2) + 0.2, 12, 0);
+        phoneGroup.add(pwrBtn);
+
+        scene.add(phoneGroup);
+
+        // Rotación de presentación inicial suave
+        phoneGroup.rotation.y = 0.6;
+        phoneGroup.rotation.x = 0.1;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
